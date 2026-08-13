@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Live data · ShakePie Archive{% endblock %}
+{% block body_attributes %} data-live-url="{{ url_for('live_api') }}" data-live-history="{{ history_seconds }}" data-live-refresh="{{ refresh_milliseconds }}" data-live-frequency="{{ frequency_max_hz }}" data-live-rate="{{ sample_rate_hz }}"{% endblock %}
+{% block content %}
+<div class="page-heading live-heading">
+  <div>
+    <p class="eyebrow">Recorder stream · raw ADC counts</p>
+    <h1>Live data</h1>
+  </div>
+  <div class="live-controls">
+    <div class="inline-control">
+      <label for="live-window">Visible window</label>
+      <select id="live-window">
+        <option value="10">10 seconds</option>
+        <option value="20">20 seconds</option>
+        <option value="30" selected>30 seconds</option>
+      </select>
+    </div>
+    <div class="inline-control">
+      <label for="live-fmax">Spectrum max</label>
+      <select id="live-fmax">
+        <option value="10">0–10 Hz</option>
+        <option value="20">0–20 Hz</option>
+        <option value="50">0–50 Hz</option>
+        <option value="100" selected>0–100 Hz</option>
+      </select>
+    </div>
+    <button id="live-toggle" class="button button-secondary" type="button" disabled>Pause</button>
+  </div>
+</div>
+
+{% if not enabled %}
+<section class="empty-state"><h2>Live data is disabled</h2><p>Enable it in the archive configuration and restart the web service.</p></section>
+{% else %}
+<section class="live-status panel" aria-live="polite">
+  <div><span id="live-spinner" class="spinner" aria-hidden="true"></span><span id="live-status-dot" class="status-dot status-gray hidden"></span><strong id="live-status-text">Connecting…</strong></div>
+  <dl>
+    <div><dt>Sample rate</dt><dd id="live-rate">{{ sample_rate_hz }} Hz</dd></div>
+    <div><dt>Source rate</dt><dd id="live-source-rate">—</dd></div>
+    <div><dt>Data age</dt><dd id="live-age">—</dd></div>
+    <div><dt>Stream gaps</dt><dd id="live-gaps">0</dd></div>
+    <div><dt>Waveform scale</dt><dd id="live-scale">—</dd></div>
+  </dl>
+</section>
+<div id="live-error" class="notice notice-error hidden" role="alert"></div>
+
+<section class="live-legend" aria-label="Plot scale information">
+  <span class="spectrogram-key">
+    <span class="key-gradient" aria-hidden="true"></span>
+    <span>Spectrogram −120 to −20 dBFS</span>
+  </span>
+</section>
+
+<section class="live-stack">
+  {% for channel, label in [('north', 'North'), ('east', 'East'), ('vertical', 'Vertical')] %}
+  <article class="live-channel panel" data-live-channel="{{ channel }}">
+    <div class="section-heading"><h2>{{ label }}</h2></div>
+    <div class="live-plots">
+      <figure>
+        <figcaption>Time history</figcaption>
+        <div class="canvas-wrap"><canvas class="live-canvas" data-live-waveform="{{ channel }}" width="900" height="260" role="img" aria-label="{{ label }} live waveform in raw ADC counts"></canvas><span class="plot-placeholder">Waiting for live data…</span></div>
+      </figure>
+      <figure>
+        <figcaption>Spectrogram</figcaption>
+        <div class="canvas-wrap"><canvas class="live-canvas" data-live-spectrogram="{{ channel }}" width="900" height="260" role="img" aria-label="{{ label }} live spectrogram from zero to {{ frequency_max_hz }} hertz"></canvas><span class="plot-placeholder">Waiting for live data…</span></div>
+      </figure>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+<noscript><div class="notice notice-warning">Live plots require JavaScript in this browser.</div></noscript>
+{% endif %}
+{% endblock %}

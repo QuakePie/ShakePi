@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Dayplot · ShakePie Archive{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><p class="eyebrow">On-demand static images</p><h1>Dayplot</h1></div>
+  <form class="date-form" method="get">
+    <label for="dayplot-date">UTC day</label>
+    <input id="dayplot-date" name="date" type="text" value="{{ selected or '' }}" inputmode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="YYYY-MM-DD" aria-describedby="dayplot-date-format">
+    <span id="dayplot-date-format" class="visually-hidden">Use YYYY-MM-DD format or pick a highlighted day</span>
+    <button type="button" class="icon-button calendar-button" data-calendar-for="dayplot-date" data-calendar-mode="navigate" title="Pick a day from the calendar" aria-label="Pick a day from the calendar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v2H4v18h16V4h-3V2h-2v2H9V2H7Zm-1 8h12v10H6V10Zm2 2v3h3v-3H8Z"/></svg>
+    </button>
+    <button class="button button-primary" type="submit">Open day</button>
+  </form>
+</div>
+
+{% if not selected %}
+<section class="empty-state"><h2>No archive days available</h2><p>Dayplots are generated only from indexed, finalized recordings.</p></section>
+{% else %}
+<section class="panel dayplot-control">
+  <div>
+    <p class="eyebrow">{{ selected }} UTC</p>
+    <h2>{% if cache|length == 3 %}Snapshot ready{% else %}No cached dayplot{% endif %}</h2>
+    <p class="muted compact-meta">{{ summary.count }} recordings · {{ summary.bytes | format_bytes }} · {{ 'complete' if summary.complete else 'partial' }} day</p>
+    {% if selected == current_day %}<p class="muted">Uses the data recorded so far today; active time stays blank.</p>{% endif %}
+  </div>
+  <form action="{{ url_for('request_dayplot', utc_day=selected) }}" method="post" class="generation-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if not summary.complete or cache|length == 3 %}
+    <div class="inline-options">
+      {% if not summary.complete %}
+      <label class="checkbox-option">
+        <input type="checkbox" name="confirm_incomplete" value="yes" required>
+        <span>Keep gaps blank <em class="muted">(this day is incomplete)</em></span>
+      </label>
+      {% endif %}
+      {% if cache|length == 3 %}
+      <label class="checkbox-option">
+        <input type="checkbox" name="regenerate" value="yes" required>
+        <span>Replace unchanged images <em class="muted">(cached plot exists)</em></span>
+      </label>
+      {% endif %}
+    </div>
+    {% endif %}
+    <button class="button button-primary" type="submit">{% if selected == current_day %}{{ 'Regenerate snapshot' if cache|length == 3 else 'Generate snapshot' }}{% else %}{{ 'Regenerate dayplot' if cache|length == 3 else 'Generate dayplot' }}{% endif %}</button>
+  </form>
+</section>
+
+<section class="panel dayplot-regenerate-all">
+  <div>
+    <h2>Regenerate everything</h2>
+    <p class="muted compact-meta">Re-plots every archived day one by one; days with a queued or running job are not duplicated.</p>
+  </div>
+  <form action="{{ url_for('regenerate_all_dayplots') }}" method="post" class="generation-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="button button-secondary js-regenerate-all" type="submit">Regenerate all days</button>
+  </form>
+</section>
+
+{% if job %}
+<section class="job-status" aria-live="polite">
+  {% if job.state != 'completed' %}<span class="status-dot status-{{ 'red' if job.state == 'failed' else 'yellow' }}"></span>{% endif %}
+  <div><strong>{{ job.state | title }}</strong><p>{{ job.progress }}{% if job.error_message %}: {{ job.error_message }}{% endif %}</p></div>
+</section>
+{% endif %}
+
+{% if cache %}
+<p class="helper-text">Tip: click a plot line to open that time in Recorded data.</p>
+<section class="plot-stack" data-recorded-url="{{ url_for('recorded_page') }}" data-day="{{ selected }}" data-interval="{{ interval_minutes }}">
+  {% for channel in ['north', 'east', 'vertical'] %}
+    {% if channel in cache %}
+    <article class="plot-card">
+      <div class="section-heading"><h2>{{ channel | title }}</h2><a class="button button-secondary" href="{{ url_for('dayplot_image', utc_day=selected, channel=channel, download=1) }}">Download</a></div>
+      <img class="dayplot-image" src="{{ url_for('dayplot_image', utc_day=selected, channel=channel) }}" alt="{{ channel | title }} channel dayplot for {{ selected }} UTC" loading="lazy">
+    </article>
+    {% endif %}
+  {% endfor %}
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

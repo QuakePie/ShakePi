@@ -1,0 +1,39 @@
+[Unit]
+Description=ShakePie on-demand dayplot worker
+After=mnt-shakepie\x2ddata.mount
+RequiresMountsFor=/mnt/shakepie-data
+ConditionPathIsMountPoint=/mnt/shakepie-data
+
+[Service]
+Type=simple
+User=shakepie-web
+Group=shakepie
+WorkingDirectory=/opt/shakepie/archive-web
+EnvironmentFile=/etc/shakepie/archive-web.env
+Environment=MPLBACKEND=Agg
+ExecStart=/opt/shakepie/archive-web/.venv/bin/shakepie-dayplot-worker --config /etc/shakepie/archive-web.conf
+Restart=on-failure
+RestartSec=10
+UMask=0027
+Nice=15
+IOSchedulingClass=idle
+CPUWeight=10
+IOWeight=10
+MemoryMax=1100M
+TasksMax=64
+NoNewPrivileges=true
+PrivateTmp=false
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+ReadOnlyPaths=/etc/shakepie /mnt/shakepie-data/recordings
+ReadWritePaths=/mnt/shakepie-data/index /mnt/shakepie-data/dayplots
+
+[Install]
+WantedBy=multi-user.target

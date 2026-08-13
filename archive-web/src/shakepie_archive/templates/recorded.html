@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Recorded data · ShakePie Archive{% endblock %}
+{% block body_attributes %} data-recordings-url="{{ url_for('recording_options_api') }}" data-recording-plot-url="{{ url_for('recording_plot_api', recording_id=0) }}" data-recording-requested="{{ requested_recording }}" data-recorded-at="{{ requested_at }}" data-recorded-frequency="{{ frequency_max_hz }}"{% endblock %}
+{% block content %}
+<div class="page-heading recorded-heading">
+  <div><p class="eyebrow">Finalized recording analysis</p><h1>Recorded data</h1></div>
+</div>
+
+{% if not selected %}
+<section class="empty-state"><h2>No recordings available</h2><p>Recordings appear here once finalized and indexed.</p></section>
+{% else %}
+<section class="panel recorded-controls" aria-label="Recording selection">
+  <div>
+    <label for="recorded-date">UTC day</label>
+    <div class="date-with-calendar">
+      <input id="recorded-date" type="text" value="{{ selected }}" inputmode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="YYYY-MM-DD" aria-describedby="recorded-date-format">
+      <button type="button" class="icon-button calendar-button" data-calendar-for="recorded-date" data-calendar-mode="input" title="Pick a day from the calendar" aria-label="Pick a day from the calendar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v2H4v18h16V4h-3V2h-2v2H9V2H7Zm-1 8h12v10H6V10Zm2 2v3h3v-3H8Z"/></svg>
+      </button>
+    </div>
+    <span id="recorded-date-format" class="visually-hidden">Use YYYY-MM-DD format or pick a highlighted day</span>
+  </div>
+  <div class="recording-picker">
+    <label for="recorded-file">Recording</label>
+    <select id="recorded-file" disabled><option>Loading recordings…</option></select>
+  </div>
+  <div class="recorded-actions">
+    <button id="recorded-plot" class="button button-primary" type="button" disabled>View recording</button>
+    <button id="recorded-copy-link" class="button button-secondary" type="button" title="Copy a link to this view">Copy link</button>
+    <a id="recorded-miniseed" class="button button-secondary hidden" download title="Download this recording as miniSEED (opens in ObsPy, Swarm, jAmaSeis)">Export MiniSEED</a>
+  </div>
+  <div class="inline-control audio-control">
+    <label for="audio-channel">Play as sound</label>
+    <select id="audio-channel">
+      <option value="north">North</option>
+      <option value="east">East</option>
+      <option value="vertical">Vertical</option>
+    </select>
+    <audio id="recording-audio" controls preload="none"></audio>
+  </div>
+</section>
+
+<p id="recorded-message" class="helper-text" role="status">Choose a finalized recording, then select View recording.</p>
+
+<section id="recorded-summary" class="summary-strip hidden" aria-label="Selected recording summary">
+  <div><span>Start UTC</span><strong id="recorded-start">—</strong></div>
+  <div><span>End UTC</span><strong id="recorded-end">—</strong></div>
+  <div><span>Duration</span><strong id="recorded-duration">—</strong></div>
+  <div><span>File size</span><strong id="recorded-size">—</strong></div>
+  <div><span>Sample groups</span><strong id="recorded-samples">—</strong></div>
+  <div><span>Effective rate</span><strong id="recorded-rate">—</strong></div>
+  <div><span>Sequence gaps</span><strong id="recorded-gaps">—</strong></div>
+  <div><span>Validation</span><strong id="recorded-validation">—</strong></div>
+  <div><span>Filename</span><strong id="recorded-name" class="breakable">—</strong></div>
+</section>
+
+<section id="recorded-plots" class="live-stack hidden">
+  <section class="live-legend" aria-label="Plot scale information">
+    <span class="spectrogram-key">
+      <span class="key-gradient" aria-hidden="true"></span>
+      <span>Spectrogram −120 to −20 dBFS</span>
+    </span>
+  </section>
+  {% for channel, label in [('north', 'North'), ('east', 'East'), ('vertical', 'Vertical')] %}
+  <article class="live-channel panel">
+    <div class="section-heading"><h2>{{ label }}</h2></div>
+    <div class="live-plots">
+      <figure><figcaption>Time history · shared amplitude scale</figcaption><canvas class="live-canvas" data-recorded-waveform="{{ channel }}" width="900" height="260" role="img" aria-label="{{ label }} recording waveform in raw ADC counts"></canvas></figure>
+      <figure><figcaption>Spectrogram · 0–{{ frequency_max_hz }} Hz</figcaption><canvas class="live-canvas" data-recorded-spectrogram="{{ channel }}" width="900" height="260" role="img" aria-label="{{ label }} recording spectrogram from zero to {{ frequency_max_hz }} hertz"></canvas></figure>
+    </div>
+  </article>
+  {% endfor %}
+  <article class="live-channel panel">
+    <div class="section-heading"><h2>Analysis</h2></div>
+    <div class="recorded-actions analysis-actions">
+      <button id="tool-hodogram" class="button button-secondary" type="button">Particle motion</button>
+      <label class="analysis-field" for="hodogram-start">Start (s)</label>
+      <input id="hodogram-start" type="number" min="0" step="1" value="0">
+      <label class="analysis-field" for="hodogram-seconds">Length (s)</label>
+      <input id="hodogram-seconds" type="number" min="1" max="300" step="1" value="60">
+      <button id="tool-hv" class="button button-secondary" type="button">H/V ratio</button>
+    </div>
+    <figure id="hodogram-figure" class="hidden">
+      <figcaption>North–East particle motion · polarization azimuth <span id="hodogram-summary">—</span></figcaption>
+      <canvas id="hodogram-canvas" class="live-canvas" width="720" height="420" role="img" aria-label="North versus East particle motion scatter plot"></canvas>
+    </figure>
+    <figure id="hv-figure" class="hidden">
+      <figcaption>H/V spectral ratio · peak <span id="hv-summary">—</span></figcaption>
+      <canvas id="hv-canvas" class="live-canvas" width="900" height="320" role="img" aria-label="Horizontal to vertical spectral ratio against frequency"></canvas>
+    </figure>
+  </article>
+</section>
+{% endif %}
+{% endblock %}

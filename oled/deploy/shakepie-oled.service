@@ -1,0 +1,27 @@
+[Unit]
+Description=ShakePie OLED status display
+Documentation=file:/opt/shakepie/oled/README.md
+After=seisberry-recorder.service
+
+[Service]
+Type=simple
+User=shakepie
+Group=shakepie
+SupplementaryGroups=i2c
+WorkingDirectory=/opt/shakepie/oled
+ExecStart=/opt/shakepie/oled/.venv/bin/shakepie-oled --health-file /run/shakepie/health.json --events-db /mnt/shakepie-data/index/archive.sqlite --data-dir /mnt/shakepie-data
+Restart=on-failure
+RestartSec=10
+Nice=10
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+DevicePolicy=closed
+DeviceAllow=/dev/i2c-1 rw
+
+[Install]
+WantedBy=multi-user.target

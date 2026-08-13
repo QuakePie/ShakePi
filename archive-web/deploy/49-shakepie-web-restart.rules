@@ -1,0 +1,13 @@
+// Allow the ShakePie archive web account to restart exactly the three service units
+// the validated settings page manages. Install root-owned into /etc/polkit-1/rules.d/.
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.systemd1.manage-units" &&
+        subject.user == "shakepie-web") {
+        var unit = action.lookup("unit");
+        if (unit == "seisberry-recorder.service" ||
+            unit == "shakepie-dayplot-worker.service" ||
+            unit == "shakepie-archive-web.service") {
+            return polkit.Result.YES;
+        }
+    }
+});

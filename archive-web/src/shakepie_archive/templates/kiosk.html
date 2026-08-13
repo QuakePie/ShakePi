@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Kiosk · ShakePie</title>
+  <link rel="icon" href="{{ url_for('static', filename='shakepie-logo.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ static_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='kiosk.css') }}?v={{ static_version }}">
+</head>
+<body class="kiosk"
+      data-live-url="{{ url_for('live_api') }}"
+      data-status-url="{{ url_for('status_api') }}"
+      data-live-rate="{{ sample_rate_hz }}"
+      data-live-history="{{ history_seconds }}"
+      data-live-refresh="{{ refresh_milliseconds }}">
+  <header class="kiosk-head">
+    <div class="kiosk-brand">
+      <img src="{{ url_for('static', filename='shakepie-logo.png') }}" alt="">
+      <span>ShakePie</span>
+    </div>
+    <div class="kiosk-clock">
+      <strong id="kiosk-clock-utc">--:--:--</strong>
+      <span id="kiosk-clock-local"></span>
+    </div>
+    <div class="kiosk-status">
+      <span id="kiosk-state-dot" class="status-dot status-gray"></span>
+      <span id="kiosk-state-text">Starting…</span>
+      <button id="kiosk-fullscreen" class="button button-quiet" type="button">Fullscreen</button>
+      <a class="button button-quiet" href="{{ url_for('overview') }}">Exit</a>
+    </div>
+  </header>
+  {% if live_enabled %}
+  <main class="kiosk-stack">
+    {% for channel, label in [('north', 'N — North'), ('east', 'E — East'), ('vertical', 'Z — Vertical')] %}
+    <section class="kiosk-channel">
+      <h2>{{ label }}</h2>
+      <canvas data-kiosk-wave="{{ channel }}" aria-label="{{ label }} live waveform"></canvas>
+    </section>
+    {% endfor %}
+  </main>
+  <footer class="kiosk-foot">
+    <span id="kiosk-rate">— Hz</span>
+    <span id="kiosk-age">—</span>
+    <span id="kiosk-events"></span>
+    <span id="kiosk-disk"></span>
+    <span id="kiosk-error" class="kiosk-error"></span>
+  </footer>
+  {% else %}
+  <main class="kiosk-disabled"><p>Live data is disabled in the archive configuration.</p></main>
+  {% endif %}
+  <script src="{{ url_for('static', filename='kiosk.js') }}?v={{ static_version }}" defer></script>
+</body>
+</html>

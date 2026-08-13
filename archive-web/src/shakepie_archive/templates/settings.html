@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Recorder settings · ShakePie Archive{% endblock %}
+{% block body_attributes %} data-calibration-url="{{ url_for('status_api') }}"{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><p class="eyebrow">Recorder administration</p><h1>Recorder settings</h1></div>
+</div>
+
+<section class="panel">
+  <h2>How changes are applied</h2>
+  <p class="helper-text">Values are validated first, the current file is backed up, and the
+  recorder restarts with the new settings. Recording pauses briefly and sequence numbers
+  restart from zero.</p>
+</section>
+
+<section class="panel" id="calibration-panel">
+  <h2>Sensor zero calibration</h2>
+  <p class="helper-text">Measures the sensor offset and records data centered on zero.
+  Recording continues during calibration; keep the ground quiet while it runs.</p>
+  <p class="helper-text">
+    Current status: <strong id="calib-state">loading…</strong>
+    <span id="calib-progress"></span><br>
+    Applied offsets: <strong id="calib-offsets">loading…</strong>
+  </p>
+  <div class="recorded-actions">
+    <form method="post" action="{{ url_for('settings_calibrate') }}" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="mode" value="calibrate">
+      <button class="button button-primary" type="submit" id="calib-start">Calibrate zero level</button>
+    </form>
+    <form method="post" action="{{ url_for('settings_calibrate') }}" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="mode" value="clear">
+      <button class="button button-secondary" type="submit" id="calib-clear">Record raw (clear offsets)</button>
+    </form>
+  </div>
+</section>
+
+{% if current %}
+<form method="post" id="settings-form" class="stack-form panel settings-form" action="{{ url_for('settings_apply') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% for field in fields %}
+  <div class="settings-field">
+    <label for="field-{{ loop.index }}">{{ field.label }} <code class="muted">{{ field.key }}</code></label>
+    {% if field.kind == 'enum' %}
+    <select id="field-{{ loop.index }}" name="{{ field.key }}">
+      {% for choice in field.choices %}<option value="{{ choice }}" {% if current.get(field.key) == choice %}selected{% endif %}>{{ choice }}</option>{% endfor %}
+    </select>
+    {% elif field.kind == 'int' %}
+    <input id="field-{{ loop.index }}" name="{{ field.key }}" type="number" inputmode="numeric" min="{{ field.minimum }}" max="{{ field.maximum }}" step="1" value="{{ current.get(field.key, '') }}">
+    {% else %}
+    <input id="field-{{ loop.index }}" name="{{ field.key }}" type="text" value="{{ current.get(field.key, '') }}" maxlength="31" autocomplete="off">
+    {% endif %}
+    {% if field.help %}<p class="helper-text">{{ field.help }}{% if field.kind == 'int' %} Allowed range: {{ field.minimum }}–{{ field.maximum }}.{% endif %}</p>{% endif %}
+  </div>
+  {% endfor %}
+  <div><button class="button button-primary" type="submit">Validate and apply</button></div>
+</form>
+{% else %}
+<section class="empty-state"><h2>Configuration unavailable</h2><p>The recorder configuration
+could not be read at <code>{{ recorder_conf }}</code>.</p></section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,46 @@
+[Unit]
+Description=ShakePie three-component seismic recorder
+Documentation=file:/opt/shakepie/current/share/doc/shakepie/OPERATIONS.md
+After=local-fs.target
+RequiresMountsFor=/mnt/shakepie-data
+ConditionPathIsMountPoint=/mnt/shakepie-data
+
+[Service]
+Type=simple
+User=shakepie
+Group=shakepie
+SupplementaryGroups=spi gpio
+RuntimeDirectory=shakepie
+RuntimeDirectoryMode=0750
+StateDirectory=shakepie
+StateDirectoryMode=0770
+ExecStart=/opt/shakepie/current/bin/shakepie-recorder --config /etc/shakepie/recorder.conf
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=360s
+UMask=0027
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/mnt/shakepie-data /run/shakepie
+DevicePolicy=closed
+DeviceAllow=/dev/spidev0.0 rw
+DeviceAllow=/dev/gpiochip0 rw
+
+[Install]
+WantedBy=multi-user.target

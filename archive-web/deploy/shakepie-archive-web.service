@@ -1,0 +1,40 @@
+[Unit]
+Description=ShakePie archive web interface
+After=network.target mnt-shakepie\x2ddata.mount
+RequiresMountsFor=/mnt/shakepie-data
+ConditionPathIsMountPoint=/mnt/shakepie-data
+
+[Service]
+Type=simple
+User=shakepie-web
+Group=shakepie
+WorkingDirectory=/opt/shakepie/archive-web
+EnvironmentFile=/etc/shakepie/archive-web.env
+ExecStart=/opt/shakepie/archive-web/.venv/bin/gunicorn -c /opt/shakepie/archive-web/gunicorn.conf.py shakepie_archive.wsgi:app
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=35
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+# /etc/shakepie stays writable (it is deliberately absent from ReadOnlyPaths) so the
+# validated settings page can back up and replace recorder.conf and archive-web.conf;
+# the root-only archive-web.env secrets remain unreadable to this account either way.
+ReadOnlyPaths=/run/shakepie
+ReadWritePaths=/mnt/shakepie-data/recordings /mnt/shakepie-data/index /mnt/shakepie-data/dayplots /etc/shakepie /var/lib/shakepie
+MemoryMax=192M
+CPUQuota=40%
+TasksMax=48
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{% block title %}ShakePie Archive{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='shakepie-logo.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ static_version }}">
+</head>
+<body{% block body_attributes %}{% endblock %} data-days-url="{{ url_for('days_api') }}">
+  {% if session.get('authenticated') %}
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('overview') }}" aria-label="ShakePie overview">
+      <img class="brand-logo" src="{{ url_for('static', filename='shakepie-logo.png') }}" alt="">
+      <span><strong>ShakePie</strong><small>Archive console</small></span>
+    </a>
+    <nav aria-label="Primary navigation">
+      <a href="{{ url_for('overview') }}"{% if request.endpoint == 'overview' %} aria-current="page"{% endif %}>Overview</a>
+      <a href="{{ url_for('archive') }}"{% if request.endpoint == 'archive' %} aria-current="page"{% endif %}>Archive</a>
+      <a href="{{ url_for('dayplot') }}"{% if request.endpoint == 'dayplot' %} aria-current="page"{% endif %}>Dayplot</a>
+      <a href="{{ url_for('events_page') }}"{% if request.endpoint == 'events_page' %} aria-current="page"{% endif %}>Events</a>
+      <a href="{{ url_for('watch_page') }}"{% if request.endpoint == 'watch_page' %} aria-current="page"{% endif %}>Watch</a>
+      <a href="{{ url_for('live_page') }}"{% if request.endpoint == 'live_page' %} aria-current="page"{% endif %}>Live data</a>
+      <a href="{{ url_for('kiosk_page') }}"{% if request.endpoint == 'kiosk_page' %} aria-current="page"{% endif %}>Kiosk</a>
+      <a href="{{ url_for('recorded_page') }}"{% if request.endpoint == 'recorded_page' %} aria-current="page"{% endif %}>Recorded data</a>
+      <a href="{{ url_for('settings_page') }}"{% if request.endpoint == 'settings_page' %} aria-current="page"{% endif %}>Settings</a>
+    </nav>
+    <div class="topbar-actions">
+      <button id="theme-toggle" class="icon-button theme-toggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode">
+        <svg class="theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.7 14.9A8.8 8.8 0 0 1 9.1 3.3 8.8 8.8 0 1 0 20.7 14.9Z"/></svg>
+        <svg class="theme-icon-sun hidden" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      </button>
+      <form action="{{ url_for('logout') }}" method="post" class="logout-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="button button-quiet" type="submit">Log out</button>
+      </form>
+    </div>
+  </header>
+  {% endif %}
+
+  <main class="page-shell">
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="notice notice-{{ category }}" role="status">{{ message }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='app.js') }}?v={{ static_version }}" defer></script>
+</body>
+</html>

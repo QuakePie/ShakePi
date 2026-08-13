@@ -1,0 +1,25 @@
+[Unit]
+Description=Reconcile finalized ShakePie recordings into the archive catalog
+After=mnt-shakepie\x2ddata.mount
+RequiresMountsFor=/mnt/shakepie-data
+ConditionPathIsMountPoint=/mnt/shakepie-data
+
+[Service]
+Type=oneshot
+User=shakepie-web
+Group=shakepie
+WorkingDirectory=/opt/shakepie/archive-web
+EnvironmentFile=/etc/shakepie/archive-web.env
+ExecStart=/opt/shakepie/archive-web/.venv/bin/shakepie-archive-reconcile --config /etc/shakepie/archive-web.conf
+UMask=0027
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/etc/shakepie /mnt/shakepie-data/recordings
+ReadWritePaths=/mnt/shakepie-data/index
+MemoryMax=160M
+CPUQuota=25%

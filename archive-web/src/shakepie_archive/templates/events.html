@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Events · ShakePie Archive{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><p class="eyebrow">Automatic STA/LTA detection · vertical channel</p><h1>Events</h1></div>
+</div>
+
+<div class="event-filter">
+  <nav class="filter-tabs" aria-label="Event filters">
+    <a href="{{ url_for('events_page') }}"{% if active_filter == 'all' %} aria-current="page"{% endif %}>All</a>
+    <a href="{{ url_for('events_page', range='today') }}"{% if active_filter == 'today' %} aria-current="page"{% endif %}>Today</a>
+    <a href="{{ url_for('events_page', range='yesterday') }}"{% if active_filter == 'yesterday' %} aria-current="page"{% endif %}>Yesterday</a>
+    <a href="{{ url_for('events_page', range='7') }}"{% if active_filter == '7' %} aria-current="page"{% endif %}>7 days</a>
+    <a href="{{ url_for('events_page', range='30') }}"{% if active_filter == '30' %} aria-current="page"{% endif %}>30 days</a>
+  </nav>
+  <form class="date-form" method="get">
+    <label for="event-date">UTC day</label>
+    <input id="event-date" name="date" type="text" value="{{ date_filter }}" inputmode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="YYYY-MM-DD" aria-describedby="event-date-format">
+    <span id="event-date-format" class="visually-hidden">Use YYYY-MM-DD format or pick a highlighted day</span>
+    <button type="button" class="icon-button calendar-button" data-calendar-for="event-date" data-calendar-mode="navigate" title="Pick a day from the calendar" aria-label="Pick a day from the calendar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v2H4v18h16V4h-3V2h-2v2H9V2H7Zm-1 8h12v10H6V10Zm2 2v3h3v-3H8Z"/></svg>
+    </button>
+    <button class="button button-primary" type="submit">Show</button>
+  </form>
+</div>
+
+<p class="helper-text muted compact-meta">{{ events|length }} event{{ '' if events|length == 1 else 's' }} shown. Tick rows and use
+<strong>Remove selected</strong> for false triggers — recordings are not affected.</p>
+
+{% if not events %}
+<section class="empty-state"><h2>No events in this view</h2><p>Change the filter or pick another
+day to see other stored events.</p></section>
+{% else %}
+<div class="bulk-bar hidden" id="events-bulk-bar">
+  <button class="button button-danger" id="events-remove-selected" type="button" disabled>
+    Remove selected
+  </button>
+  <span id="events-selected-count" class="muted"></span>
+</div>
+<div class="table-wrap" data-events-table data-bulk-url="{{ url_for('delete_events_bulk') }}">
+<table>
+  <thead><tr>
+    <th><input type="checkbox" id="events-select-all" aria-label="Select all events"></th>
+    <th>Start UTC</th><th>Duration</th><th class="numeric">Peak amplitude</th><th class="numeric">Trigger ratio</th><th>Station</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+  <tbody>
+  {% for event in events %}
+    <tr>
+      <td><input type="checkbox" class="event-check" data-id="{{ event.id }}" aria-label="Select event from {{ event.started_ns | format_datetime }}"></td>
+      <td>{{ event.started_ns | format_datetime }}</td>
+      <td>{{ event.started_ns | format_duration(event.ended_ns) }}</td>
+      <td class="numeric">{{ "{:,}".format(event.peak_amplitude) }} counts</td>
+      <td class="numeric">{{ "×%.1f" | format(event.peak_ratio) }}</td>
+      <td>{{ event.station_id or "—" }}</td>
+      <td class="row-actions">
+        <a class="button button-small button-secondary" href="{{ url_for('recorded_page', date=(event.started_ns | utc_day), at=(event.started_ns | utc_time)) }}">Open plot</a>
+        <button class="icon-button icon-button-danger js-remove-event" type="button"
+          data-action="{{ url_for('delete_event', event_id=event.id) }}"
+          data-time="{{ event.started_ns | format_datetime }}"
+          title="Remove from the list" aria-label="Remove this event from the list">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h10l-.7 11H7.7L7 9Zm3 2v7h2v-7h-2Zm4 0v7h2v-7h-2Z"/></svg>
+        </button>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<dialog id="remove-event-dialog">
+  <form id="remove-event-form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2>Remove this event?</h2>
+    <p id="remove-event-time" class="confirm-filename"></p>
+    <p>The entry is removed from this list. Recorded data is not affected.</p>
+    <div class="dialog-actions">
+      <button class="button button-secondary" type="button" data-close-dialog>Cancel</button>
+      <button class="button button-danger" type="submit">Remove</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
+{% endblock %}

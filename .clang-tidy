@@ -1,0 +1,11 @@
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  concurrency-*,
+  performance-*,
+  portability-*,
+  modernize-use-nullptr
+WarningsAsErrors: '*'
+HeaderFilterRegex: '(^|/)(pi|protocol)/.*'
+FormatStyle: none

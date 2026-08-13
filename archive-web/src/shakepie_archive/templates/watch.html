@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Watch points · ShakePie Archive{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><p class="eyebrow">Earthquake watch</p><h1>Watch points</h1></div>
+  {% if watch_enabled %}
+  <form method="post" action="{{ url_for('watch_check') }}" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="button button-secondary" type="submit">Check now</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if not watch_enabled %}
+<section class="empty-state"><h2>Earthquake watch is disabled</h2><p>Enable it in the archive
+configuration and restart the web service.</p></section>
+{% else %}
+
+<section class="panel">
+  <h2>Check every</h2>
+  <form method="post" action="{{ url_for('watch_interval') }}" class="inline-control">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="number" name="hours" min="1" max="168" step="1" value="{{ interval_hours }}" style="width: 6rem;" aria-label="Check interval in hours">
+    <span class="muted">hours</span>
+    <button class="button button-secondary" type="submit">Save</button>
+  </form>
+  {% if service %}<p class="helper-text muted">Last full check: {{ service.last_result().at or 'pending' }}
+  {% if service.last_result().new %}· {{ service.last_result().new }} new earthquake(s){% endif %}</p>{% endif %}
+</section>
+
+<section class="panel">
+  <h2>{{ 'Edit point: ' + edit_values.name if edit_values else 'Add a point' }}</h2>
+  <form method="post" action="{{ url_for('watch_points_save') }}" class="stack-form settings-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if edit_values %}<input type="hidden" name="original" value="{{ edit_values.name }}">{% endif %}
+    <div class="settings-field">
+      <label for="watch-name">Name <code class="muted">letters, digits, - _</code></label>
+      <input id="watch-name" name="name" type="text" maxlength="40" required autocomplete="off"
+             value="{{ edit_values.name if edit_values else '' }}">
+    </div>
+    <div class="settings-field">
+      <label for="watch-lat">Latitude <code class="muted">-90 … 90</code></label>
+      <input id="watch-lat" name="latitude" type="number" step="any" min="-90" max="90" required
+             value="{{ edit_values.latitude if edit_values else '' }}">
+    </div>
+    <div class="settings-field">
+      <label for="watch-lon">Longitude <code class="muted">-180 … 180</code></label>
+      <input id="watch-lon" name="longitude" type="number" step="any" min="-180" max="180" required
+             value="{{ edit_values.longitude if edit_values else '' }}">
+    </div>
+    <div class="settings-field">
+      <label for="watch-radius">Radius (km)</label>
+      <input id="watch-radius" name="radius_km" type="number" min="1" max="2000" step="1" required
+             value="{{ edit_values.radius_km if edit_values else 300 }}">
+    </div>
+    <div class="settings-field">
+      <label for="watch-minmag">Minimum magnitude</label>
+      <input id="watch-minmag" name="min_magnitude" type="number" min="0" max="10" step="0.1" required
+             value="{{ edit_values.min_magnitude if edit_values else 2 }}">
+    </div>
+    <div class="settings-field">
+      <label for="watch-sources">Catalog</label>
+      <select id="watch-sources" name="sources">
+        {% set source_options = [
+          ('both', 'USGS + ISC'),
+          ('usgs', 'USGS only'),
+          ('isc', 'ISC only'),
+          ('cenc', 'CENC only (China)'),
+          ('usgs_cenc', 'USGS + CENC'),
+          ('all', 'All catalogs'),
+        ] %}
+        {% for value, label in source_options %}
+        <option value="{{ value }}" {% if edit_values and edit_values.sources == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="recorded-actions">
+      <button class="button button-primary" type="submit">{{ 'Save changes' if edit_values else 'Add point' }}</button>
+      {% if edit_values %}<a class="button button-secondary" href="{{ url_for('watch_page') }}">Cancel</a>{% endif %}
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Defined points</h2>
+  {% if not points %}
+  <p class="helper-text">No watch points yet. Add one above — the first check runs shortly after
+  saving.</p>
+  {% else %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Name</th><th class="numeric">Latitude</th><th class="numeric">Longitude</th><th class="numeric">Radius</th><th>Catalogs</th><th class="numeric">Min M</th><th>Last check</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody>
+    {% for point in points %}
+      {% set check = last_checks[point.name] or {} %}
+      <tr>
+        <td>{{ point.name }}</td>
+        <td class="numeric">{{ "%.4f" | format(point.latitude) }}</td>
+        <td class="numeric">{{ "%.4f" | format(point.longitude) }}</td>
+        <td class="numeric">{{ point.radius_km }} km</td>
+        <td>{{ point.sources | upper }}</td>
+        <td class="numeric">{{ point.min_magnitude }}</td>
+        <td>
+          {% if check %}
+            <span class="badge badge-{{ 'good' if check.status == 'ok' else 'danger' }}">{{ check.status }}</span>
+            {% if check.new %}· {{ check.new }} new{% endif %}
+            {% if check.error %}<span class="helper-error">{{ check.error }}</span>{% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td class="row-actions">
+          <a class="button button-small button-secondary" href="{{ url_for('watch_page', edit=point.name) }}">Edit</a>
+          <button class="icon-button icon-button-danger js-remove-event" type="button"
+            data-action="{{ url_for('watch_points_delete') }}"
+            data-time="{{ point.name }}"
+            title="Delete watch point" aria-label="Delete watch point">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h10l-.7 11H7.7L7 9Zm3 2v7h2v-7h-2Zm4 0v7h2v-7h-2Z"/></svg>
+          </button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h2>Found earthquakes</h2>
+    <form method="get" class="inline-control">
+      <label for="watch-point-filter">Point</label>
+      <select name="point">
+        <option value="" {% if not selected_point %}selected{% endif %}>All points</option>
+        {% for name in point_names %}
+        <option value="{{ name }}" {% if selected_point == name %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+      <button class="button button-small button-secondary" type="submit">Show</button>
+    </form>
+  </div>
+  {% if not quakes %}
+  <p class="helper-text">No earthquakes recorded yet. Press Check now, or wait for the next
+  scheduled check.</p>
+  {% else %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Time UTC</th><th>Point</th><th class="numeric">Magnitude</th><th class="numeric">Distance</th><th class="numeric">Depth</th><th>Region</th><th>Source</th></tr></thead>
+    <tbody>
+    {% for quake in quakes %}
+      <tr>
+        <td>{{ quake.time_ns | format_datetime }}</td>
+        <td>{{ quake.point }}</td>
+        <td class="numeric">{% if quake.magnitude is not none %}M {{ quake.magnitude }}{% else %}—{% endif %}</td>
+        <td class="numeric">{{ quake.distance_km }} km</td>
+        <td class="numeric">{% if quake.depth_km is not none %}{{ quake.depth_km }} km{% else %}—{% endif %}</td>
+        <td class="breakable">{{ quake.place or '—' }}</td>
+        <td><span class="badge">{{ quake.source | upper }}</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</section>
+
+<dialog id="remove-event-dialog">
+  <form id="remove-event-form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2>Delete watch point?</h2>
+    <p id="remove-event-time" class="confirm-filename"></p>
+    <p>The point and its stored earthquake list are removed. Recordings are not affected.</p>
+    <div class="dialog-actions">
+      <button class="button button-secondary" type="button" data-close-dialog>Cancel</button>
+      <button class="button button-danger" type="submit">Delete</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
+{% endblock %}

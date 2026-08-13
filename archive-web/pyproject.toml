@@ -1,0 +1,61 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "shakepie-archive"
+version = "0.4.0"
+description = "Low-resource archive management and dayplots for ShakePie"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.12"
+dependencies = [
+  "Flask>=3.1,<4",
+  "google-crc32c>=1.7,<2",
+  "numpy>=2.0,<3",
+]
+
+[project.optional-dependencies]
+dayplot = [
+  "matplotlib>=3.9,<4",
+  "obspy>=1.4,<2",
+  "Pillow>=10,<13",
+]
+production = ["gunicorn>=23,<24"]
+dev = [
+  "mypy>=1.11",
+  "pytest>=8.3",
+  "ruff>=0.6",
+]
+
+[project.urls]
+Repository = "https://github.com/QuakePie/ShakePi"
+Issues = "https://github.com/QuakePie/ShakePi/issues"
+
+[project.scripts]
+shakepie-archive-reconcile = "shakepie_archive.commands:reconcile_main"
+shakepie-dayplot-worker = "shakepie_archive.dayplot_jobs:main"
+shakepie-archive-password = "shakepie_archive.commands:password_main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/shakepie_archive"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --basetemp=.pytest-tmp"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["shakepie_archive"]
+
+[[tool.mypy.overrides]]
+module = ["google_crc32c", "matplotlib.*", "numpy", "numpy.*", "obspy.*"]
+ignore_missing_imports = true

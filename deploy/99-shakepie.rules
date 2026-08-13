@@ -1,0 +1,3 @@
+# Restrict acquisition devices to the dedicated groups used by the service.
+SUBSYSTEM=="spidev", KERNEL=="spidev0.0", GROUP="spi", MODE="0660"
+SUBSYSTEM=="gpio", KERNEL=="gpiochip0", GROUP="gpio", MODE="0660"

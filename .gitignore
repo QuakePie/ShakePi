@@ -1,0 +1,45 @@
+/build/
+/build-*/
+**/dist/
+**/*.egg-info/
+**/.venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.pytest-tmp/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local editor/app state and frozen development backups.
+/.aws/
+.idea/
+.vscode/
+/backup/
+
+# Runtime data stays on the recorder or in a local offload directory.
+/deploy/dayplots/
+*.spb
+!protocol/fixtures/golden-block-v1.spb
+*.partial
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.log
+.shakepie-terminal.json
+
+# Keep blank environment examples, never populated credentials or private keys.
+.env
+.env.*
+*.env
+!*.env.example
+!.env.example
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# Enclosure sources and exports stay local.
+/3D-Print/

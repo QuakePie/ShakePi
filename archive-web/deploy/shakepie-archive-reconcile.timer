@@ -1,0 +1,11 @@
+[Unit]
+Description=Low-frequency ShakePie archive reconciliation
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+RandomizedDelaySec=45s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

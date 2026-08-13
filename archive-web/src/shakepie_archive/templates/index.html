@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Overview · ShakePie Archive{% endblock %}
+{% block body_attributes %} data-status-url="{{ url_for('status_api') }}" data-refresh-seconds="{{ refresh_seconds }}"{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div>
+    <p class="eyebrow">System status</p>
+    <h1>Overview</h1>
+  </div>
+  <button id="refresh-status" class="button button-secondary" type="button">Refresh</button>
+</div>
+
+{% if status.health_error %}
+<div class="notice notice-warning" id="health-warning" role="alert">
+  Health information is unavailable: {{ status.health_error }}
+</div>
+{% elif status.health_stale %}
+<div class="notice notice-warning" id="health-warning" role="alert">
+  Recorder health information is stale. Verify the recorder service.
+</div>
+{% else %}
+<div class="notice notice-warning hidden" id="health-warning" role="alert"></div>
+{% endif %}
+
+<section class="status-hero" aria-label="Recorder summary">
+  <div>
+    <span class="status-dot status-{{ status.recorder_level }}" data-status-level="recorder_level"></span>
+    <span class="status-label" data-status-field="recorder_state">{{ status.recorder_state }}</span>
+    <p data-status-field="station_id">{{ status.station_id }}</p>
+  </div>
+  <dl>
+    <div><dt>Sampling rate</dt><dd data-status-field="sampling_rate">{{ status.sampling_rate }}</dd></div>
+    <div><dt>Missing samples</dt><dd data-status-field="missing_samples">{{ status.missing_samples }}</dd></div>
+    <div><dt>Sequence gaps</dt><dd data-status-field="sequence_gaps">{{ status.sequence_gaps }}</dd></div>
+    <div><dt>Storage</dt><dd data-status-field="storage_status">{{ status.storage_status }}</dd></div>
+  </dl>
+</section>
+
+<section class="status-grid" aria-label="Subsystem health">
+  {% for label, field, level_field in [
+      ('ADC', 'adc_status', 'adc_level'),
+      ('Storage', 'storage_status', 'storage_level'),
+      ('Timing', 'timing_status', 'timing_level'),
+      ('Archive index', 'archive_index', 'archive_index_level'),
+      ('Dayplot generator', 'dayplot_generator', 'dayplot_level'),
+      ('Event detector', 'detector_state', 'detector_level')
+  ] %}
+  <article class="status-card">
+    <div class="card-heading">
+      <h2>{{ label }}</h2>
+      <span class="status-dot status-{{ status[level_field] }}" data-status-level="{{ level_field }}"></span>
+    </div>
+    <p data-status-field="{{ field }}">{{ status[field] }}</p>
+    {% if label == 'Event detector' %}
+    <p data-status-field="events_line">Last event: <span data-status-field="last_event">{{ status.last_event }}</span> · <span data-status-field="last_event_peak">{{ status.last_event_peak }}</span></p>
+    {% endif %}
+  </article>
+  {% endfor %}
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <div><p class="eyebrow">Host system</p><h2>Raspberry Pi</h2></div>
+    <small>Updated <span data-status-field="refreshed_at">{{ status.refreshed_at }}</span></small>
+  </div>
+  <dl class="metric-grid">
+    <div><dt>Data coverage today</dt><dd data-status-field="today_coverage">{{ status.today_coverage }}</dd></div>
+    <div><dt>Last archived sample</dt><dd data-status-field="last_sample_age">{{ status.last_sample_age }}</dd></div>
+    <div><dt>CPU load</dt><dd data-status-field="cpu_load">{{ status.cpu_load }}</dd></div>
+    <div><dt>SoC temperature</dt><dd data-status-field="soc_temperature">{{ status.soc_temperature }}</dd></div>
+    <div><dt>Memory used</dt><dd data-status-field="memory_used">{{ status.memory_used }}</dd></div>
+    <div><dt>Uptime</dt><dd data-status-field="uptime">{{ status.uptime }}</dd></div>
+  </dl>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <div><p class="eyebrow">Storage and acquisition</p><h2>Recorder details</h2></div>
+    <small>Last updated <span data-status-field="refreshed_at">{{ status.refreshed_at }}</span></small>
+  </div>
+  <progress class="storage-progress" data-status-progress="disk_used_percent" max="100" value="{{ status.disk_used_percent }}" aria-label="Storage used">{{ status.disk_used_percent }}%</progress>
+  <dl class="metric-grid">
+    <div><dt>Disk queue depth</dt><dd data-status-field="disk_queue_depth">{{ status.disk_queue_depth }}</dd></div>
+    <div><dt>Used / total</dt><dd><span data-status-field="disk_used">{{ status.disk_used }}</span> / <span data-status-field="disk_total">{{ status.disk_total }}</span></dd></div>
+    <div><dt>Available</dt><dd data-status-field="disk_available">{{ status.disk_available }}</dd></div>
+    <div><dt>Estimated days left</dt><dd data-status-field="recording_days_remaining">{{ status.recording_days_remaining }}</dd></div>
+    <div><dt>Active recording</dt><dd class="breakable" data-status-field="active_recording">{{ status.active_recording }}</dd></div>
+    <div><dt>Latest finalized</dt><dd class="breakable" data-status-field="latest_recording">{{ status.latest_recording }}</dd></div>
+  </dl>
+</section>
+{% endblock %}

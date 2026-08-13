@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Archive · ShakePie Archive{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><p class="eyebrow">Finalized recordings</p><h1>Archive</h1></div>
+  <form class="date-form" method="get">
+    <label for="archive-date">UTC day</label>
+    <input id="archive-date" name="date" type="text" value="{{ selected or '' }}" inputmode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="YYYY-MM-DD" aria-describedby="archive-date-format">
+    <span id="archive-date-format" class="visually-hidden">Use YYYY-MM-DD format or pick a highlighted day</span>
+    <button type="button" class="icon-button calendar-button" data-calendar-for="archive-date" data-calendar-mode="navigate" title="Pick a day from the calendar" aria-label="Pick a day from the calendar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v2H4v18h16V4h-3V2h-2v2H9V2H7Zm-1 8h12v10H6V10Zm2 2v3h3v-3H8Z"/></svg>
+    </button>
+    <button class="button button-primary" type="submit">Open day</button>
+  </form>
+</div>
+
+{% if not selected %}
+<section class="empty-state"><h2>No recordings indexed</h2><p>Recordings appear here once finalized and indexed.</p></section>
+{% else %}
+<div class="day-nav" aria-label="Archive day navigation">
+  {% if previous %}<a class="button button-secondary" href="{{ url_for('archive', date=previous) }}">← Previous</a>{% else %}<span></span>{% endif %}
+  <strong>{{ selected }} UTC</strong>
+  <div>
+    {% if following %}<a class="button button-secondary" href="{{ url_for('archive', date=following) }}">Next →</a>{% endif %}
+    {% if selected != latest %}<a class="button button-secondary" href="{{ url_for('archive', date=latest) }}">Latest</a>{% endif %}
+  </div>
+</div>
+
+<section class="summary-strip" aria-label="Day summary">
+  <div><span>Recordings</span><strong>{{ summary.count }}</strong></div>
+  <div><span>Archive size</span><strong>{{ summary.bytes | format_bytes }}</strong></div>
+  <div><span>Sequence gaps</span><strong>{{ summary.gaps }}</strong></div>
+  <div><span>Day status</span><strong class="badge badge-{{ 'good' if summary.complete else 'warning' }}">{{ 'Complete' if summary.complete else 'Partial day' }}</strong></div>
+</section>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Start UTC</th><th>End UTC</th><th>Filename</th><th>Duration</th><th class="numeric">Size</th><th class="numeric">Sample groups</th><th class="numeric">Blocks</th><th>Type</th><th>Validation</th><th class="numeric">Gaps</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+  <tbody>
+  {% for record in page.items %}
+    <tr>
+      <td>{{ record.start_ns | format_time }}</td>
+      <td>{{ record.end_ns | format_time }}</td>
+      <td class="filename" title="{{ record.filename }}">{{ record.filename }}</td>
+      <td>{{ record.start_ns | format_duration(record.end_ns) }}</td>
+      <td class="numeric">{{ record.size_bytes | format_bytes }}</td>
+      <td class="numeric">{{ "{:,}".format(record.sample_count or 0) }}</td>
+      <td class="numeric">{{ "{:,}".format(record.block_count or 0) }}</td>
+      <td><span class="badge">{{ 'Recovered' if record.recovered else 'Normal' }}</span></td>
+      <td><span class="badge badge-{{ 'good' if record.validation_status == 'valid' else 'danger' }}">{{ record.validation_status | title }}</span></td>
+      <td class="numeric">{{ record.sequence_gap_count }}</td>
+      <td class="row-actions">
+        {% if record.validation_status == 'valid' %}<a class="button button-small button-primary" href="{{ url_for('recorded_page', date=selected, recording=record.id) }}">Plot</a>{% endif %}
+        <a class="button button-small button-quiet" href="{{ url_for('download', recording_id=record.id) }}">Download</a>
+        {% if record.validation_status == 'valid' %}<a class="button button-small button-quiet" href="{{ url_for('recording_miniseed', recording_id=record.id) }}" title="Download as miniSEED for ObsPy, Swarm, or jAmaSeis">MiniSEED</a>{% endif %}
+        <button class="icon-button icon-button-danger js-delete" type="button"
+          data-action="{{ url_for('permanently_delete_recording', recording_id=record.id) }}"
+          data-filename="{{ record.filename }}" title="Delete recording" aria-label="Delete recording">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h10l-.7 11H7.7L7 9Zm3 2v7h2v-7h-2Zm4 0v7h2v-7h-2Z"/></svg>
+        </button>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if page.pages > 1 %}
+<nav class="pagination" aria-label="Archive pages">
+  {% if page.page > 1 %}<a class="button button-secondary" href="{{ url_for('archive', date=selected, page=page.page-1) }}">Previous page</a>{% endif %}
+  <span>Page {{ page.page }} of {{ page.pages }}</span>
+  {% if page.page < page.pages %}<a class="button button-secondary" href="{{ url_for('archive', date=selected, page=page.page+1) }}">Next page</a>{% endif %}
+</nav>
+{% endif %}
+
+<dialog id="delete-dialog">
+  <form id="delete-form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input id="delete-confirm-filename" type="hidden" name="confirm_filename">
+    <h2>Delete recording?</h2>
+    <p id="delete-filename" class="confirm-filename"></p>
+    <p>This action cannot be undone.</p>
+    <div class="dialog-actions"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-danger" type="submit">Delete</button></div>
+  </form>
+</dialog>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Request error · ShakePie Archive{% endblock %}
+{% block content %}
+<section class="empty-state error-state">
+  <p class="eyebrow">Request not completed</p>
+  <h1>{{ error.name if error else 'Internal server error' }}</h1>
+  <p>{{ error.description if error else 'The request could not be completed. Check the service log for details.' }}</p>
+  <a class="button button-primary" href="{{ url_for('overview') }}">Return to overview</a>
+</section>
+{% endblock %}
